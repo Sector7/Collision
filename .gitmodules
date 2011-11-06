@@ -1,0 +1,3 @@
+[submodule "stampzilla"]
+    path = stampzilla
+    url = git://github.com/stampzilla/stampzilla.git
