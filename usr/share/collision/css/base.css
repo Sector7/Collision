@@ -1,0 +1,50 @@
+* {
+    font-family:sans-serif;
+}
+
+body {
+    background:#000;
+    color:#fff;
+    margin:0px;
+}
+
+#left {
+    float:left;
+    width:70%;
+}
+
+#right {
+    float:right;
+    width:30%;
+}
+
+.box {
+    background:#111;
+    border:1px solid #333;
+    padding:10px;
+    margin:10px;
+}
+#left .box {
+    margin-right:0px;
+}
+
+.box h2 {
+    margin-top:0px;
+}
+.box h2 input {
+    float:right;
+}
+
+ul {
+    list-style:none;
+    padding-left:10px;
+}
+
+li div {
+    width:16px;
+    height:16px;
+    background: #f00;
+    float:left;
+    margin-right:10px;
+    -moz-border-radius:4px;
+}

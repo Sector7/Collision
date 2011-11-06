@@ -7,7 +7,9 @@ fi
 echo ""
 
 echo "Running stampzilla installer"
-./stampzilla/install
+cd stampzilla
+./install
+cd ..
 
 echo -n "Creating symbolic links..."
 ln -sf `pwd`/usr/bin/collision /usr/bin/
