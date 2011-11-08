@@ -50,42 +50,44 @@ if ( !$pid ) { // Child
 
             if ( ($pos = strpos($buff,"~")) !== false ) { // Found start of a package
                 $pos += 1;
-                $msb = ord(substr($buff,$pos,1));
-                $lsb = ord(substr($buff,$pos+1,1));
-                $len = $msb*256 + $lsb;
+
+                $subpkt = substr($buff,$pos);
+                $prelen = strlen($subpkt);
+                $subpkt = str_replace(
+                    "\x7D\x5D",
+                    "\x7D",
+                    $subpkt
+                );
+
+                $subpkt = str_replace(
+                    array(
+                        "\x7D\xDE",
+                        "\x7D\x31",
+                        "\x7D\x33",
+                    ),
+                    array(
+                        "\xFE",
+                        "\x11",
+                        "\x13"
+                    ),
+                    $subpkt
+                );
+
+                $lendiff = strlen($subpkt) - $prelen;
+
+                $msb = ord(substr($subpkt,0,1));
+                $lsb = ord(substr($subpkt,1,1));
+                $len = $msb*16 + $lsb;
 
                 if ( $len > 0 ) {
-                    $subpkt = substr($buff,$pos+2);
-                    $prelen = strlen($subpkt);
-                    $subpkt = str_replace(
-                        "\x7D\x5D",
-                        "\x7D",
-                        $subpkt
-                    );
+                    $pkt = substr($subpkt,2,$len+1);
 
-                    $subpkt = str_replace(
-                        array(
-                            "\x7D\xDE",
-                            "\x7D\x31",
-                            "\x7D\x33",
-                        ),
-                        array(
-                            "\xFE",
-                            "\x11",
-                            "\x13"
-                        ),
-                        $subpkt
-                    );
-                    $lendiff = strlen($subpkt) - $prelen;
-
-                    $pkt = substr($subpkt,0,$len+1);
-
-                    $msg = "Found pkg, $pos, $len + $lendiff";
+                    /*$msg = "Found pkg, [".ord(substr($buff,$pos-1,1)).",$msb,$lsb] $pos, $len";
                     $msg .= " - [$pkt] ".strlen($pkt)." ($buff) \n";
                     if ( $prev != $msg ) {
                         $prev = $msg;
                         echo $msg;
-                    }
+                    }*/
                     if ( strlen($pkt)-1 == $len ) {
                         //$pkt = substr($buff,$pos-1,3) . $pkt;
                         //echo "GOT IT ($pkt)\n";
@@ -115,12 +117,13 @@ function send($txt) {
 }
 
 
-echo "Reading ID:\n";
+/*echo "Reading ID:\n";
 send($x->at('ID'));
 echo "Reading SH:\n";
 send($x->at('SH'));
 echo "Reading SL:\n";
 send($x->at('SL'));
+*/
 
 $stdin = fopen('php://stdin', 'r');
 while(true) {
@@ -138,11 +141,18 @@ while(true) {
         case 'NJ':
             send($x->at('NJ'));
             break;
-        case 'send':
+        case 'send0':
+            //$ptk = $x->transmit('0013A200407C435C','stamp');
+            //$ptk =   $x->transmit('0013A20040698406',"\x10");
+            $ptk =   $x->transmit('000000000000FFFF',"\x00");
+            //$x->decode($ptk);
+            fwrite($t,$ptk);
+            break;
+        case 'send1':
             //$ptk = $x->transmit('0013A200407C435C','stamp');
             $ptk =   $x->transmit('0013A20040698406',"\x10");
-            //$ptk =   $x->transmit('000000000000FFFF',"\x10");
-            $x->decode($ptk);
+            //$ptk =   $x->transmit('000000000000FFFF',"\xFF");
+            //$x->decode($ptk);
             fwrite($t,$ptk);
             break;
         case 'setup':

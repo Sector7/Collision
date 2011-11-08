@@ -41,13 +41,20 @@ class xbeeApi {
             $chk += ord(substr($cmd,$i,1));
         $chk = 255 - ($chk % 256);
 
-        $cmd = str_replace(
+        $len = strlen($cmd);
+
+        $lsb = $len % 256;
+        $msb = ($len - $lsb) / 256;
+
+        $pkt = chr($msb).chr($lsb).$cmd.chr($chk);
+
+        $pkt = str_replace(
             "\x7D",
             "\x7D\x5D",
-            $cmd
+            $pkt
         );
 
-        $cmd = str_replace(
+        $pkt = str_replace(
             array(
                 "\xFE",
                 "\x11",
@@ -58,15 +65,10 @@ class xbeeApi {
                 "\x7D\x31",
                 "\x7D\x33",
             ),
-            $cmd
+            $pkt
         );
 
-        $len = strlen($cmd);
-
-        $lsb = $len % 256;
-        $msb = ($len - $lsb) / 256;
-
-        $pkt = "\x7E".chr($msb).chr($lsb).$cmd.chr($chk);
+        $pkt = "\x7E".$pkt;
 
         /*foreach(get_defined_vars() as $key => $line ) {
             echo $key.": ";
@@ -235,6 +237,11 @@ class xbeeApi {
                         $options = substr($cmdData,10,1);
                         $data = substr($cmdData,11);
                         echo "Recived packet from $from64 ($from16): $data\n";
+
+                        for($i=0;$i<strlen($data);$i++) {
+                            echo " ".ord(substr($data,$i,1));
+                        }
+                        echo "\n";
                         break;
                     default:
                         echo "\033[1;34mRecived unknown packet:\n";
