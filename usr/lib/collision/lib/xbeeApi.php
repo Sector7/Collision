@@ -1,19 +1,38 @@
 <?php
 
-class xbee {
+class xbeeApi {
     public $id = 1;
 
     function at($cmd,$value=null) {
         $cmd = substr($cmd,0,2); // Limit cmd to 2 chars
         $api = "\x08";
-        $pkt = $api.chr($this->id).$cmd;
+        $pkt = $api.chr($this->id).$cmd.$value;
 
         $this->id++;
-        if ( $this->id > 256 )
+        if ( $this->id > 255 )
             $this->id = 1;
 
         return $this->package($pkt);
     }
+
+    function transmit($to,$data) {
+        $api = "\x10";
+
+		$to = $this->parseAddress($to);
+		$local = $this->parseAddress('FFFE'); // Local address is unknown
+		$radius = "\x00"; // Max radius (10 hops)
+		$opts = "\x00"; // 0 = No options, 1 = disable ack, 2 = Disable Network Address Discovery
+
+        $pkt = $api.chr($this->id).$to.$local.$radius.$opts.$data;
+
+        $this->id++;
+        if ( $this->id > 255 )
+            $this->id = 1;
+
+        return $this->package($pkt);
+    }
+
+
 
     function package( $cmd ) {
 
@@ -79,24 +98,6 @@ class xbee {
 		}
 		return strtoupper($ret);
 	}
-
-    function transmit($to,$data) {
-        $api = "\x10";
-
-		$to = $this->parseAddress($to);
-		$local = $this->parseAddress('FFFE'); // Local address is unknown
-		$radius = "\x00"; // Max radius (10 hops)
-		$opts = "\x03"; // 0 = No options, 1 = disable ack, 2 = Disable Network Address Discovery
-
-        $pkt = $api.chr($this->id).$to.$local.$radius.$opts.$data;
-
-        $this->id++;
-        if ( $this->id > 255 )
-            $this->id = 1;
-
-        return $this->package($pkt);
-    }
-
 
     function decode( $in ) {
 
