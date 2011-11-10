@@ -79,11 +79,13 @@ if ( !$pid ) { // Child
                 $lsb = ord(substr($subpkt,1,1));
                 $len = $msb*16 + $lsb;
 
+				$subpkt = substr($subpkt,2);
+				$subpkt = $x->escape($subpkt);
                 if ( $len > 0 ) {
-                    $pkt = substr($subpkt,2,$len+1);
+                    $pkt = substr($subpkt,0,$len+1);
 
                     /*$msg = "Found pkg, [".ord(substr($buff,$pos-1,1)).",$msb,$lsb] $pos, $len";
-                    $msg .= " - [$pkt] ".strlen($pkt)." ($buff) \n";
+                    $msg .= " - [$pkt] ".strlen($pkt).'|'.ord(substr($pkt,-1))." ($buff) \n";
                     if ( $prev != $msg ) {
                         $prev = $msg;
                         echo $msg;
@@ -91,6 +93,7 @@ if ( !$pid ) { // Child
                     if ( strlen($pkt)-1 == $len ) {
                         //$pkt = substr($buff,$pos-1,3) . $pkt;
                         //echo "GOT IT ($pkt)\n";
+
                         $x->decode($pkt);
                         $buff = substr($buff,$pos+$len+5+$lendiff);
                     }
@@ -154,6 +157,40 @@ while(true) {
             //$ptk =   $x->transmit('000000000000FFFF',"\xFF");
             //$x->decode($ptk);
             fwrite($t,$ptk);
+            break;
+		case 'fade':
+			while(1) {
+				for($i=0;$i<256;$i+=5) {
+					echo "Send $i\n";
+	    	        fwrite($t,$x->transmit('0013A20040698406',chr($i).chr(0).chr(0)));
+					usleep(25000);
+				}
+				for($i=255;$i>0;$i-=5) {
+					echo "Send $i\n";
+	    	        fwrite($t,$x->transmit('0013A20040698406',chr($i).chr(0).chr(0)));
+					usleep(25000);
+				}
+				for($i=0;$i<256;$i+=5) {
+					echo "Send $i\n";
+	    	        fwrite($t,$x->transmit('0013A20040698406',chr(0).chr($i).chr(0)));
+					usleep(25000);
+				}
+				for($i=255;$i>0;$i-=5) {
+					echo "Send $i\n";
+	    	        fwrite($t,$x->transmit('0013A20040698406',chr(0).chr($i).chr(0)));
+					usleep(25000);
+				}
+				for($i=0;$i<256;$i+=5) {
+					echo "Send $i\n";
+	    	        fwrite($t,$x->transmit('0013A20040698406',chr(0).chr(0).chr($i)));
+					usleep(25000);
+				}
+				for($i=255;$i>0;$i-=5) {
+					echo "Send $i\n";
+	    	        fwrite($t,$x->transmit('0013A20040698406',chr(0).chr(0).chr($i)));
+					usleep(25000);
+				}
+			}
             break;
         case 'setup':
             send($x->at('AP',"\x02"));

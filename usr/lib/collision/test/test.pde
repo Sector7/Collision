@@ -1,5 +1,4 @@
 #include <XBee.h> 
-#include <NewSoftSerial.h>
 
 int brightness = 0;    // how bright the LED is
 int fadeAmount = 5;    // how many points to fade the LED by
@@ -30,6 +29,10 @@ void loop()
         // got a rx packet
         xbee.getResponse().getRx64Response(rx64);
         data = rx64.getData(1);
+        analogWrite(9, data);
+        data = rx64.getData(2);
+        analogWrite(10, data);
+        data = rx64.getData(3);
         analogWrite(11, data);
         
         uint8_t payload[] = {  rx64.getData(0), rx64.getData(1), rx64.getData(2), rx64.getDataLength(),'l','l','o' };

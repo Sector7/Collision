@@ -48,27 +48,7 @@ class xbeeApi {
 
         $pkt = chr($msb).chr($lsb).$cmd.chr($chk);
 
-        $pkt = str_replace(
-            "\x7D",
-            "\x7D\x5D",
-            $pkt
-        );
-
-        $pkt = str_replace(
-            array(
-                "\xFE",
-                "\x11",
-                "\x13"
-            ),
-            array(
-                "\x7D\xDE",
-                "\x7D\x31",
-                "\x7D\x33",
-            ),
-            $pkt
-        );
-
-        $pkt = "\x7E".$pkt;
+        $pkt = "\x7E".$this->escape($pkt);
 
         /*foreach(get_defined_vars() as $key => $line ) {
             echo $key.": ";
@@ -83,6 +63,50 @@ class xbeeApi {
         }*/
 
 		return $pkt;
+	}
+
+	function escape( $pkt ) {
+        $pkt = str_replace(
+            "\x7D",
+            "\x7D\x5D",
+            $pkt
+        );
+
+        return str_replace(
+            array(
+                "\xFE",
+                "\x11",
+                "\x13"
+            ),
+            array(
+                "\x7D\xDE",
+                "\x7D\x31",
+                "\x7D\x33",
+            ),
+            $pkt
+        );
+	}
+
+	function descape( $pkt ) {
+		$pkt = str_replace(
+			"\x7D\x5D",
+			"\x7D",
+			$pkt
+		);
+
+		return str_replace(
+			array(
+				"\x7D\xDE",
+				"\x7D\x31",
+				"\x7D\x33",
+			),
+			array(
+				"\xFE",
+				"\x11",
+				"\x13"
+			),
+			$pkt
+		);
 	}
 
 	function parseAddress($addr) {
@@ -107,21 +131,7 @@ class xbeeApi {
             $in = substr($in,3);
         }
 
-        $msg = str_replace(
-            array(
-                "\x7D\xDE",
-                "\x7D\x5D",
-                "\x7D\x31",
-                "\x7D\x33",
-            ),
-            array(
-                "\xFE",
-                "\x7D",
-                "\x11",
-                "\x13"
-            ),
-            $in
-        );
+		$msg = $this->descape($in);
 
         $cmd = substr($msg,0,-1);
         $validate = 0;
