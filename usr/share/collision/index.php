@@ -7,7 +7,9 @@
         <meta http-equiv="Pragma" content="no-cache"> 
         <title>Collision - Lasergame made awsome!</title>
 
-        <script type="text/javascript" src="mootools-core-1.3-full-compat-yc.js"></script>
+        <script type="text/javascript" src="js/mootools-core-1.3-full-compat-yc.js"></script>
+        <script type="text/javascript" src="js/jscolor/jscolor.js"></script>
+        <script type="text/javascript" src="js/collision.js"></script>
 
         <link href="css/base.css" rel="stylesheet" />
     </head>
@@ -23,8 +25,9 @@
             </div>
             <div class="network box">
                 <h2>Network
-                <input type="button" value="Discover">
+                <input type="button" value="Discover" onClick="collision.sendDiscover();">
                 </h2>
+				<div id="nodes"></div>
             </div>
         </div>
         <div id="left">
@@ -34,9 +37,15 @@
             </div>
             <div class="players box">
                 <h2>Players</h2>
-
+				<p>
+					<input class="color" onChange="collision.sendColor(this.value);">
+				</p>
+				<p>
+					<img src="http://www.asciitable.com/index/asciifull.gif">
+				</p>
             </div>
         </div>
+		<iframe src="incoming.php"></iframe>
     </body>
 </html>
 
