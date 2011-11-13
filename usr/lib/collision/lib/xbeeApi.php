@@ -18,8 +18,13 @@ class xbeeApi {
     function transmit($to,$data) {
         $api = "\x10";
 
-		$to = $this->parseAddress($to);
-		$local = $this->parseAddress('FFFE'); // Local address is unknown
+		if ( strlen($to) == 20 ) {
+			$to = $this->parseAddress(substr($to,0,16));
+			$local = $this->parseAddress(substr($to,16,4)); // Send to local address
+		} else {
+			$to = $this->parseAddress($to);
+			$local = $this->parseAddress('FFFE'); // Local address is unknown
+		}
 		$radius = "\x00"; // Max radius (10 hops)
 		$opts = "\x00"; // 0 = No options, 1 = disable ack, 2 = Disable Network Address Discovery
 

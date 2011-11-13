@@ -19,8 +19,8 @@
                 <h2>System status</h2>
                 <ul>
                     <li id="zbif"><div></div>ZigBee interface</li>
-                    <li id="zbcoord"><div></div>ZigBee coordinator</li>
-                    <li id="ctrl"><div></div>Game controller</li>
+                    <li id="zbcoord" onClick="collision.send('to=xbee&cmd=kill')"><div></div>ZigBee coordinator</li>
+                    <li id="ctrl" onClick="collision.send('to=gameserver&cmd=kill')"><div></div>Game controller</li>
                 </ul>
             </div>
             <div class="network box">
@@ -31,21 +31,91 @@
             </div>
         </div>
         <div id="left">
-            <div class="game box">
-                <h2>Game</h2>
-                
+            <div class="newgame box">
+                <h2>Create a new game</h2>
+                <form>
+					<label>Game mode</label>
+					<select name="mode">
+						<option value="teamscore">Team - Score</option>
+						<option value="teamdm">Team - Deathmatch</option>
+						<option value="capture">Team - Capture the flag</option>
+						<option value="score">Score</option>
+						<option value="dm">Deathmatch</option>
+					</select>
+
+					<label>Game duration (minutes)</label>
+					<input type="text" name="duration">
+
+					<label>Number of teams</label>
+					<input type="text" name="teams">
+
+
+					<input type="submit" value="Create game">
+				</form>
             </div>
+			<div class="game box">
+				<h2>Active game (Team - Score)</h2>
+			</div>
             <div class="players box">
                 <h2>Players</h2>
-				<p>
-					<input class="color" onChange="collision.sendColor(this.value);">
-				</p>
+				<table cellspacing=0> 
+					<tr>
+						<th class="name">Name</th>
+						<th class="vest">Vest</th>
+						<th class="weapon">Weapon</th>
+						<th>Team</th>
+						<th>Kills</th>
+						<th>Deaths</th>
+						<th>Score</th>
+					</tr>
+
+					<tr>
+						<td><input type="text"></td>
+						<td>0013A20040698406</td>
+						<td>0013A20040698406</td>
+						<td>Team 1</td>
+						<td>0</td>
+						<td>0</td>
+						<td>0</td>
+					</tr>
+					<tr class="even">
+						<td><input type="text"></td>
+						<td>0013A20040698406</td>
+						<td>0013A20040698406</td>
+						<td>Team 1</td>
+						<td>0</td>
+						<td>0</td>
+						<td>0</td>
+					</tr>
+
+					<tr>
+						<td><input type="text"></td>
+						<td>0013A20040698406</td>
+						<td>0013A20040698406</td>
+						<td>Team 1</td>
+						<td>0</td>
+						<td>0</td>
+						<td>0</td>
+					</tr>
+					<tr class="even">
+						<td><input type="text"></td>
+						<td>0013A20040698406</td>
+						<td>0013A20040698406</td>
+						<td>Team 1</td>
+						<td>0</td>
+						<td>0</td>
+						<td>0</td>
+					</tr>
+				</table>
+            </div>
+            <div class="box" style="display:none;">
+                <h2>Debug</h2>
 				<p>
 					<img src="http://www.asciitable.com/index/asciifull.gif">
 				</p>
             </div>
         </div>
-		<iframe src="incoming.php"></iframe>
+		<iframe id="iframe" style="display:none;"></iframe>
     </body>
 </html>
 

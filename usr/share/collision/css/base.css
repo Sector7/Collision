@@ -48,3 +48,38 @@ li div {
     margin-right:10px;
     -moz-border-radius:4px;
 }
+
+#nodes .new {
+	opacity:0.5;
+}
+
+
+.players table {
+	width:100%;
+	padding:0px;
+	margin:0px;
+}
+
+.players table th {
+	background:#444;
+	border-bottom:2px solid #fff;
+	padding:3px;
+	text-align:left;
+}
+
+.players table tr.even {
+	background:#333;
+}
+
+.players .name, 
+.players .vest, 
+.players .weapon 
+{
+	width:170px;
+}
+
+.players table input {
+	border:0px;
+	background:transparent;
+	color:#fff;
+}

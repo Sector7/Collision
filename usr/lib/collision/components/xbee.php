@@ -10,8 +10,8 @@ class xbee extends component {
 	private $sl = '';
 
 	function startup() {
-		exec("stty -F /dev/ttyUSB0 9600 raw");
-		if ( !$this->t = fopen('/dev/ttyUSB0','r+b') )
+		exec("stty -F /dev/ttyUSB1 9600 raw");
+		if ( !$this->t = fopen('/dev/ttyUSB1','r+b') )
 			die(" - Failed to open\n");
 
 		stream_set_blocking($this->t, 0);
@@ -30,30 +30,23 @@ class xbee extends component {
 		$this->kill_child(true);
 	}
 
+	function event($pkt) {
+		if ( $pkt['from'] == 'gameserver' && $pkt['cmd'] == 'bye' ) 
+	    	fwrite($this->t,$this->xapi->transmit('000000000000ffff',chr(255)));
+	}
+
 	function welcome($pkt) {
 		$this->responseTo[$this->xapi->id] = $pkt;
-	    return fwrite($this->t,$this->xapi->transmit('0013A20040698406',chr(1)));
+	    return fwrite($this->t,$this->xapi->transmit($pkt['addr'],chr(1)));
 	}
 
 
 	function shoot($pkt) {
 		$this->responseTo[$this->xapi->id] = $pkt;
-	    return fwrite($this->t,$this->xapi->transmit('0013A20040698406',chr(3)));
+	    return fwrite($this->t,$this->xapi->transmit($pkt['addr'],chr(3)));
 	}
 
 	function discover($pkt = null) {
-		$node = array(
-			'cmd' => 'node',
-			'addr16' => 'FFFE',
-			'addr64' => $this->sh.$this->sl,
-			'role' => 0,
-			'roleStr' => 'Coordinator',
-			'status' => 0,
-			'profile' => 0,
-			'mf' => ''
-		);
-		$this->broadcast($node);
-
 		if ( $pkt )
 			$this->responseTo[$this->xapi->id] = $pkt;
 	    return fwrite($this->t,$this->xapi->at('ND'));
@@ -67,6 +60,25 @@ class xbee extends component {
 	    fwrite($this->t,$this->xapi->at($pkt['at'],$pkt['data']));
 	}
 
+	function xbee_event($from, $data) {
+		switch(substr($data,0,1)) {
+			case "\x01":
+				$this->broadcast(array(
+					'cmd' => 'nodeType',
+					'addr64' => $from,
+					'nodeType' => ord(substr($data,1,1)),
+					'online' => ord(substr($data,2,1)),
+					'shots' => ord(substr($data,3,1)),
+					'life' => ord(substr($data,4,1)),
+					'color' => $this->xapi->decodeAddress(substr($data,5,3)),
+				));
+				break;
+			default:
+				note(warning,"Got an unknown package type from $from");
+				break;
+		}
+	}
+
 	function at_event($cmd,$status,$data) {
 		switch($cmd) {
 			case 'ND':
@@ -75,9 +87,20 @@ class xbee extends component {
 					1 => 'Router',
 					2 => 'End device'
 				);
+				$nodes = array(
+					array(
+						'cmd' => 'node',
+						'addr16' => 'FFFE',
+						'addr64' => $this->sh.$this->sl,
+						'role' => 0,
+						'roleStr' => 'Coordinator',
+						'status' => 0,
+						'profile' => 0,
+						'mf' => ''
+					)
+				);
 				for( $i=0;$i < strlen($data);$i+=20 ) {
 					$node = array(
-						'cmd' => 'node',
 						'addr16' => $this->xapi->decodeAddress(substr($data,$i,2)),
 						'addr64' => $this->xapi->decodeAddress(substr($data,$i+2,8)),
 						'parent16' => $this->xapi->decodeAddress(substr($data,$i+12,2)),
@@ -87,8 +110,14 @@ class xbee extends component {
 						'profile' => $this->xapi->decodeHex(substr($data,$i+16,2)),
 						'mf' => $this->xapi->decodeHex(substr($data,$i+18,2))
 					);
-					$this->broadcast($node);
+					$nodes[] = $node;
+
+	    			fwrite($this->t,$this->xapi->transmit($node['addr64'],chr(4))); // Send a who am i
 				}
+				$this->broadcast(array(
+					'cmd' => 'nodes',
+					'nodes' => $nodes
+				));
 				break;
 			case 'SH':
 				$this->sh = $this->xapi->decodeAddress($data);
@@ -117,7 +146,7 @@ class xbee extends component {
 		if ( isset($r) ) {
 			note(debug,"Sending color $r,$g,$b");
 			$this->responseTo[$this->xapi->id] = $pkt;
-		    return fwrite($this->t,$this->xapi->transmit('0013A20040698406',chr(2).chr($r).chr($g).chr($b)));
+		    return fwrite($this->t,$this->xapi->transmit($pkt['addr'],chr(2).chr($r).chr($g).chr($b)));
 		}
 	}
 
@@ -237,14 +266,14 @@ class xbee extends component {
 				$from16 = $this->xapi->decodeAddress(substr($cmdData,8,2));
 				$options = substr($cmdData,10,1);
 				$data = substr($cmdData,11);
-				$msg = "Recived packet from $from64 ($from16): $data\n";
+				$msg = "Recived packet from $from64 ($from16): ";
 
 				for($i=0;$i<strlen($data);$i++) {
-					$msg .= " ".ord(substr($data,$i,1));
+					$msg .= " Ox".$this->xapi->decodeAddress(substr($data,$i,1));
 				}
 
 				note(debug,$msg);
-
+				$this->xbee_event($from64,$data);
 				break;
 			default:
 				$msg = "Recived unknown packet:\n";
