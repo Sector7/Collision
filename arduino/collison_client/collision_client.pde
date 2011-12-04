@@ -8,8 +8,28 @@
  */
 int fireFlag = false;
 unsigned int lastShotFired;
-byte transmitBuffer[8];
-unsigned int transmitBufferPos = 0;
+const int numBitsUsedInMessage = 11;
+  
+enum ir_state {
+  neutral = 0,
+  tx = 1,
+  rx = 2,
+};
+
+enum pins {
+  IR_IN = 2,
+  BUTTON = 3,
+  IROUT = 11,
+};
+
+//IR related globals
+unsigned int irState = neutral;
+unsigned int transmitBuffer = 0;
+unsigned int receiveBuffer = 0;
+unsigned int txrxCount = 0;
+boolean hasMessage;
+
+boolean freqState;
 
 struct settings {
   boolean autoFireAllowed;
@@ -17,16 +37,9 @@ struct settings {
   unsigned int fireDelay;
 };
 
-enum pins {
-  BUTTON = 3,
-  IROUT = 11,
-  IR_IN = 2,
-};
-
 settings settings;
 
 void setup() {
-  
   // initialize the digital pin as an output.
   // Pin 13 has an LED connected on most Arduino boards:
   pinMode(IROUT, OUTPUT);
@@ -38,7 +51,10 @@ void setup() {
   lastShotFired = 0;
   settings.autoFireAllowed = false; // Not implemented
   settings.fireAllowed = true;
-  settings.fireDelay = 1000;
+  settings.fireDelay = 750;
+  
+  Timer1.initialize(240);
+  Timer1.attachInterrupt(irHandler);
 }
 
 void loop() {
@@ -54,44 +70,64 @@ void loop() {
   else {
     settings.fireAllowed = true;
   }
-  
-  if (digitalRead(IR_IN)) {
-    Serial.println("Got data");
-  }
 }
 
 void fire() {
-  transmitBuffer = { 
-    0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87   }; //, 0x95, 0xac, 0xf6, 0x1c, 0x95, 0xac, 0xaa, 0xdc };
-  //byte userid[] = { 0x91, 0x9a, 0xbf, 0xd3, 0x37, 0x19, 0x4f, 0xec, 0x95, 0xac, 0xf6, 0x1c, 0x95, 0xac, 0xaa, 0xdc };
-  transmitIR();
+  transmitBuffer = prepareMessage(0xaa);
+//  transmitBuffer = { 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87 };
+  hasMessage = true;
 }
 
-// @todo Append message to transmitbuffer for queue ability
-void transmitIR() {
+/*
+ * Start bit + message + checksum
+ */
+int prepareMessage(const byte message) {
+  return 2048 + (message << 2) + ((256 - message) % 4);
+}
 
-  // IR receiver filters on 38khz. 13 + 13 microseconds for pulses gives this.
-
-  for (int transmitBufferPos = 0; transmitBufferPos < 8; transmitBufferPos++) {
-    for (int bitPos = 0; bitPos < 8; bitPos++) {
-      if (!!(transmitBuffer[transmitBufferPos] & (1 << (7 - bitPos)))) {
-        for (unsigned int repeat = 0; repeat < 7; repeat++) {
-          digitalWrite(IROUT, HIGH);
-          delayMicroseconds(13);
-          digitalWrite(IROUT, LOW);
-          delayMicroseconds(13);
-        }
-      }
-      else {
-        delayMicroseconds(15 * 2 * 8);
-      }
-    }
-    delayMicroseconds(15 * 2 * 8);
+// @todo Append message to transmit buffer for queue ability?
+void irHandler() {
+  if(irState == rx) {
+    receive();
+  //} else if (irState == tx || hasMessage) {
+  //  irState = tx;
+  //  transmit();
+  } else if (digitalRead(IR_IN)) {
+    irState = rx;
   }
-
-  /*  transmitBufferPos++;
-   if (transmitBufferPos >= 8) {
-   transmitBufferPos = 0;
-   }*/
 }
 
+void transmit() {
+  // IR receiver filters on 38khz. 13 + 13 microseconds for pulses gives this.
+  if (!!(transmitBuffer & (1 << (numBitsUsedInMessage - txrxCount)))) {
+    for (unsigned int repeat = 0; repeat < 7; repeat++) {
+      digitalWrite(IROUT, HIGH);
+      delayMicroseconds(13);
+      digitalWrite(IROUT, LOW);
+      delayMicroseconds(13); 
+    }
+  }
+  
+  txrxCount++;
+  if (txrxCount == numBitsUsedInMessage) {
+    txrxCount = 0;
+    hasMessage = false;
+    irState = neutral;
+  }
+}
+
+void receive() { 
+  txrxCount++;
+  receiveBuffer << 1;
+  if (digitalRead(IR_IN)) {
+    receiveBuffer++;
+  }
+  
+  if (txrxCount == numBitsUsedInMessage - 1) {
+    txrxCount = 0;
+    irState = neutral;
+    Serial.println(receiveBuffer);
+    Serial.println(receiveBuffer, BIN);
+    receiveBuffer = 0;
+  }
+}
