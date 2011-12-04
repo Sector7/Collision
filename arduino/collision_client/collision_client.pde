@@ -9,7 +9,7 @@
 int fireFlag = false;
 unsigned int lastShotFired;
 const int numBitsUsedInMessage = 11;
-  
+
 enum ir_state {
   neutral = 0,
   tx = 1,
@@ -52,9 +52,10 @@ void setup() {
   settings.autoFireAllowed = false; // Not implemented
   settings.fireAllowed = true;
   settings.fireDelay = 750;
-  
-  Timer1.initialize(240);
-  Timer1.attachInterrupt(irHandler);
+
+  attachInterrupt(0,startIrRecv,RISING);
+  Timer1.initialize(480);
+  Timer1.attachInterrupt(irHandler);  
 }
 
 void loop() {
@@ -63,7 +64,7 @@ void loop() {
   if (digitalRead(BUTTON)) {
     if (settings.fireAllowed && (loopStartTime - lastShotFired > settings.fireDelay)) {
       lastShotFired = loopStartTime;
-        settings.fireAllowed = false;
+      settings.fireAllowed = false;
       fire();
     }
   } 
@@ -74,7 +75,7 @@ void loop() {
 
 void fire() {
   transmitBuffer = prepareMessage(0xaa);
-//  transmitBuffer = { 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87 };
+  //  transmitBuffer = { 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87 };
   hasMessage = true;
 }
 
@@ -89,25 +90,31 @@ int prepareMessage(const byte message) {
 void irHandler() {
   if(irState == rx) {
     receive();
-  //} else if (irState == tx || hasMessage) {
-  //  irState = tx;
-  //  transmit();
-  } else if (digitalRead(IR_IN)) {
+    //} else if (irState == tx || hasMessage) {
+    //  irState = tx;
+    //  transmit();
+  }
+}
+
+void startIrRecv(){
+  if (irState == neutral) {
     irState = rx;
+    delayMicroseconds(240);
+    Timer1.restart();
   }
 }
 
 void transmit() {
   // IR receiver filters on 38khz. 13 + 13 microseconds for pulses gives this.
   if (!!(transmitBuffer & (1 << (numBitsUsedInMessage - txrxCount)))) {
-    for (unsigned int repeat = 0; repeat < 7; repeat++) {
+    for (unsigned int repeat = 0; repeat < 14; repeat++) {
       digitalWrite(IROUT, HIGH);
       delayMicroseconds(13);
       digitalWrite(IROUT, LOW);
       delayMicroseconds(13); 
     }
   }
-  
+
   txrxCount++;
   if (txrxCount == numBitsUsedInMessage) {
     txrxCount = 0;
@@ -118,16 +125,27 @@ void transmit() {
 
 void receive() { 
   txrxCount++;
-  receiveBuffer << 1;
+  receiveBuffer = (receiveBuffer << 1);
   if (digitalRead(IR_IN)) {
     receiveBuffer++;
   }
-  
-  if (txrxCount == numBitsUsedInMessage - 1) {
+  digitalWrite(4,true);
+
+  if (txrxCount == numBitsUsedInMessage) {
+    unsigned int chkRecv = 0;
     txrxCount = 0;
     irState = neutral;
-    Serial.println(receiveBuffer);
-    Serial.println(receiveBuffer, BIN);
+    //receiveBuffer = receiveBuffer % 256;
+    receiveBuffer = (receiveBuffer & 1023);
+    chkRecv = receiveBuffer & 3;
+    receiveBuffer = (receiveBuffer >> 2);
+    if((receiveBuffer + chkRecv) % 4 == 3){
+
+        Serial.println(receiveBuffer,HEX);
+    }
     receiveBuffer = 0;
-  }
+    //Timer1.stop();
+  }  
+  digitalWrite(4,false);
 }
+
