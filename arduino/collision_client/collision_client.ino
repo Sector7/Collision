@@ -18,7 +18,7 @@ enum ir_state {
 enum pins {
   IR_IN = 2,
   BUTTON = 3,
-  IROUT = 11,
+  IR_OUT = 11,
 };
 
 //IR related globals
@@ -84,7 +84,6 @@ int prepareMessage(const byte message) {
   return 2048 + (message << 2) + ((256 - message) % 4);
 }
 
-// @todo Append message to transmit buffer for queue ability?
 void irHandler() {
   if(irState == rx) {
     receive();
