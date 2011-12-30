@@ -1,7 +1,7 @@
 #include "TimerOne.h"
 
-/*
- Collision game handler
+/**
+ * Collision game handler
  */
 
 int fireFlag = false;
@@ -41,7 +41,7 @@ settings settings;
 void setup() {
   // initialize the digital pin as an output.
   // Pin 13 has an LED connected on most Arduino boards:
-  pinMode(IROUT, OUTPUT);
+  pinMode(IR_OUT, OUTPUT);
   pinMode(BUTTON, INPUT);
   pinMode(IR_IN, INPUT);
 
@@ -106,9 +106,9 @@ void transmit() {
   // IR receiver filters on 38khz. 13 + 13 microseconds for pulses gives this.
   if (!!(transmitBuffer & (1 << (numBitsUsedInMessage - txrxCount)))) {
     for (unsigned int repeat = 0; repeat < 14; repeat++) {
-      digitalWrite(IROUT, HIGH);
+      digitalWrite(IR_OUT, HIGH);
       delayMicroseconds(13);
-      digitalWrite(IROUT, LOW);
+      digitalWrite(IR_OUT, LOW);
       delayMicroseconds(13); 
     }
   }
