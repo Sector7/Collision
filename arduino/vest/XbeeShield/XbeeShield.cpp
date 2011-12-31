@@ -1,5 +1,8 @@
 #include <XBee.h>
 #include <TimerOne.h>
+#include "XbeeShield.h"
+
+using namespace collision;
 
 XBee xbee = XBee();
 
@@ -22,30 +25,49 @@ unsigned int lastShotFired;
 const int numBitsUsedInMessage = 11;
 
 // Game parameters
+// @TODO Merge into a struct/hashmap?
 unsigned long isDeadUntil;
 unsigned long isSafeUntil;
 unsigned int  shotsLeft;
 unsigned int  lifeLeft;
 byte playerId = 0x04;
 
-enum ir_state {
-  neutral = 0,
-  tx = 1,
-  rx = 2,
-};
+collision::event eventList[256];
 
-enum pins {
-  IR_IN = 2,
-  BUTTON = 4,
-  VIBRATE = 6,
-  SPEAKER = 8,
-  RED = 11,
-  GREEN = 10,
-  BLUE = 9,
-  IROUT = 12,
-};
+/**
+ * Called by IR or Xbee receives, timers etc
+ */
+void triggerEvent(int eventId) {
+    digitalWrite(RED, HIGH);
+    delay(1000);
+    switch (eventId) {
+        // Hard coded events first
+        case 1 :
+            // ...
+            break;
+        case 10 :
+            break;
+        // Configurable events after
+        default :
+            for (int i = 0; i < 100; i++) {
+                if (eventList[i].id == eventId) {
+                    if (eventList[i].targetSelf()) {
+                        //triggerEvent(eventList[i].id);
+                    } else {
+                        triggerEventRemote(eventList[i].addr_low, eventList[i].addr_high, eventList[i].id);
+                    }
+                }
+            }
+            break;
+    }
+}
+
+void triggerEventRemote(int addr_low, int addr_high, int eventId) {
+    // Call XBee
+}
 
 //IR related globals
+const int IRpulseTimer = 480;
 unsigned int irState = neutral;
 unsigned int transmitBuffer = 0;
 unsigned int receiveBuffer = 0;
@@ -69,85 +91,97 @@ void setup() {
   // Pin 13 has an LED connected on most Arduino boards:
   pinMode(IROUT, OUTPUT);
   pinMode(SPEAKER, OUTPUT);
-  pinMode(BUTTON, INPUT);  
-  pinMode(IR_IN, INPUT);  
+  pinMode(BUTTON, INPUT);
+  pinMode(IR_IN, INPUT);
+  pinMode(RED, OUTPUT);
 
   Serial.begin(9600);
 
   lastShotFired = 0;
-  settings.autoFireAllowed = true; // Not implemented
+  settings.autoFireAllowed = false; // Not implemented
   settings.fireAllowed = true;
-  settings.fireDelay = 50;
-  
-  Timer1.initialize(480);
+  settings.fireDelay = 750;
+
+  attachInterrupt(0,startIrRecv,FALLING);
+  Timer1.initialize(IRpulseTimer);
   Timer1.attachInterrupt(irHandler);
-  
+
   // Setup XBee and send hello
   xbee.begin(9600);
   sendStatus( XBeeAddress64(0x00000000, 0x0000FFFF) );
-  
+
   teamColor[0] = 0;
-  teamColor[1] = 100;
-  teamColor[2] = 100;
+  teamColor[1] = 2;
+  teamColor[2] = 2;
+}
+
+void startIrRecv(){
+  if (irState == neutral) {
+    delayMicroseconds(IRpulseTimer / 2);
+    irState = rx;
+   // Timer1.restart();
+  }
 }
 
 void loop() {
-  unsigned int loopStartTime = millis();
 
-  if (digitalRead(BUTTON)) {
-    if (settings.fireAllowed && (loopStartTime - lastShotFired > settings.fireDelay) ) {
-      lastShotFired = loopStartTime;
-        settings.fireAllowed = settings.autoFireAllowed;
-      fire();
+    unsigned int loopStartTime = millis();
+
+    /*if (digitalRead(BUTTON)) {
+        if (settings.fireAllowed && (loopStartTime - lastShotFired > settings.fireDelay)) {
+            lastShotFired = loopStartTime;
+            settings.fireAllowed = false;
+            fire();
+        }
     }
-  } 
-  else {
-    settings.fireAllowed = true;
-  }
-  
+    else {
+        settings.fireAllowed = true;
+    }*/
+
     xbee.readPacket();
     if (xbee.getResponse().isAvailable()) {
-      // got something
-      if (xbee.getResponse().getApiId() == 0x90) {
-        // got a rx packet
-        xbee.getResponse().getRx64Response(rx64);
-        parseCommand();
-      }
+        // got something
+        if (xbee.getResponse().getApiId() == 0x90) {
+            // got a rx packet
+            xbee.getResponse().getRx64Response(rx64);
+            parseCommand();
+        }
     }
-    
+
     // Fade RGB each 5 ms
     if ( millis() > nextRgbCall ) {
-      nextRgbCall = millis() + 5;
-      fadeRgb();
+        nextRgbCall = millis() + 5;
+        fadeRgb();
     }
-    
+
     // Sound, peeow peeow
     if ( soundDelay>0 && micros() > nextSoundSwitch ) {
-      nextSoundSwitch = micros() + soundDelay;
-      soundState = !soundState;
-      digitalWrite(SPEAKER,soundState);
-      if (soundDelay<1000) {
-        soundDelay += 2;
-        if (soundDelay > 500) {
-          //analogWrite(VIBRATE,80);
+        nextSoundSwitch = micros() + soundDelay;
+        soundState = !soundState;
+        digitalWrite(SPEAKER,soundState);
+        if (soundDelay<1000) {
+            soundDelay += 2;
+            if (soundDelay > 500) {
+                analogWrite(VIBRATE,80);
+            }
+        } else {
+            soundDelay = 0;
+            digitalWrite(SPEAKER,false);
+            analogWrite(VIBRATE,0);
         }
-      } else {
-        soundDelay = 0;
-        digitalWrite(SPEAKER,false);
-        analogWrite(VIBRATE,0);
-      }
-    } 
-    
-    if ( irTxDelay > 0 && millis() > irTxDelay ) {
-      hasMessage = true;
     }
+
+   /* if ( irTxDelay > 0 && millis() > irTxDelay ) {
+        hasMessage = true;
+        irTxDelay = millis() + 100;
+    }*/
 }
 
 void fire() {
   transmitBuffer = prepareMessage(playerId);
 //  transmitBuffer = { 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87 };
-  hasMessage = true;
-  
+  //hasMessage = true;
+
   soundDelay = 100;
   nextSoundSwitch = 0;
   isDeadUntil = millis() + 3000;
@@ -155,8 +189,8 @@ void fire() {
   currentColor[0] = 255;
   currentColor[1] = 255;
   currentColor[2] = 255;
-  //analogWrite(VIBRATE,255);
-  
+  analogWrite(VIBRATE,255);
+
   sendShoot( XBeeAddress64(0x00000000, 0x0000FFFF) );
 }
 
@@ -174,8 +208,6 @@ void irHandler() {
   } else if (irState == tx || hasMessage) {
     irState = tx;
     transmit();
-  //} else if (digitalRead(IR_IN)) {
-  //  irState = rx;
   }
 }
 
@@ -186,17 +218,18 @@ void transmit() {
       digitalWrite(IROUT, HIGH);
       delayMicroseconds(13);
       digitalWrite(IROUT, LOW);
-      delayMicroseconds(13); 
+      delayMicroseconds(13);
     }
   }
-  
+
   txrxCount++;
   if (txrxCount == numBitsUsedInMessage + 1) {
     txrxCount = 0;
     hasMessage = false;
+
     irState = neutral;
     irTxCount++;
-    
+
     if (irTxCount > 4) {
       irTxDelay = 0;
       irTxCount = 0;
@@ -206,27 +239,28 @@ void transmit() {
   }
 }
 
-void receive() { 
+void receive() {
   txrxCount++;
   receiveBuffer << 1;
-  if (digitalRead(IR_IN)) {
+
+  if (!digitalRead(IR_IN)) {
     receiveBuffer++;
   }
-  
-  if (txrxCount == numBitsUsedInMessage - 1) {
+
+  if (txrxCount >= numBitsUsedInMessage - 1) {
+
+    currentColor[1] = 255;
+
     txrxCount = 0;
     irState = neutral;
-    Serial.println(receiveBuffer);
-    Serial.println(receiveBuffer, BIN);
+
+    //Serial.println(receiveBuffer);
+    //Serial.println(receiveBuffer, BIN);
+
     receiveBuffer = 0;
+    //triggerEvent(receiveBuffer);
   }
 }
-
-
-
-
-
-
 
 void parseCommand( ) {
   switch(rx64.getData(1)) {
@@ -271,7 +305,7 @@ void parseCommand( ) {
 }
 
 void sendStatus( XBeeAddress64 addr64 ) {
-  uint8_t payload[] = { 
+  uint8_t payload[] = {
     0x01, // WhoAmI cmd
     0x01, // Standard weapon
     (isOnline * 0x01), // Status bits
@@ -281,30 +315,30 @@ void sendStatus( XBeeAddress64 addr64 ) {
     teamColor[1],
     teamColor[2],
   };
-  
+
   // Specify the address of the remote XBee (this is the SH + SL)
   ZBTxRequest zbTx = ZBTxRequest(addr64, payload, sizeof(payload));
   xbee.send(zbTx);
 }
 
 void sendShoot( XBeeAddress64 addr64 ) {
-  uint8_t payload[] = { 
+  uint8_t payload[] = {
     0x02, // WhoAmI cmd
   };
-  
+
   // Specify the address of the remote XBee (this is the SH + SL)
   ZBTxRequest zbTx = ZBTxRequest(addr64, payload, sizeof(payload));
   xbee.send(zbTx);
 }
 
 void sendUnknownCommand( XBeeAddress64 addr64 ) {
-  uint8_t payload[] = { 
+  uint8_t payload[] = {
     0x00, // Unknown command
-    rx64.getData(0), 
-    rx64.getData(1), 
-    rx64.getData(2), 
-    rx64.getData(3), 
-    rx64.getData(4) 
+    rx64.getData(0),
+    rx64.getData(1),
+    rx64.getData(2),
+    rx64.getData(3),
+    rx64.getData(4)
   };
   ZBTxRequest zbTx = ZBTxRequest(addr64, payload, sizeof(payload));
   xbee.send(zbTx);
@@ -325,13 +359,13 @@ void fadeRgb() {
       targetColor[1] = teamColor[1];
       targetColor[2] = teamColor[2];
     }
-    
+
     if ( currentColor != targetColor ) {
       if ( currentColor[0] != targetColor[0] ) {
         if ( currentColor[0]<targetColor[0] ) {
           currentColor[0]++;
         } else {
-          currentColor[0]--;        
+          currentColor[0]--;
         }
         analogWrite(RED, currentColor[0]);
       }
@@ -339,7 +373,7 @@ void fadeRgb() {
         if ( currentColor[1]<targetColor[1] ) {
           currentColor[1]++;
         } else {
-          currentColor[1]--;        
+          currentColor[1]--;
         }
         analogWrite(GREEN, currentColor[1]);
       }
@@ -347,7 +381,7 @@ void fadeRgb() {
         if ( currentColor[2]<targetColor[2] ) {
           currentColor[2]++;
         } else {
-          currentColor[2]--;        
+          currentColor[2]--;
         }
         analogWrite(BLUE, currentColor[2]);
       }
@@ -356,7 +390,7 @@ void fadeRgb() {
     currentColor[0] += 3;
     currentColor[1] += 3;
     currentColor[2] = 0;
-    analogWrite(RED, currentColor[0]);    
+    analogWrite(RED, currentColor[0]);
     analogWrite(GREEN, currentColor[1]);
     analogWrite(BLUE, currentColor[2]);
   }
