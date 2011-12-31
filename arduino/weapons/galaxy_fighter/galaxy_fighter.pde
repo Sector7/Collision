@@ -1,4 +1,4 @@
-#include <Xbee.h>
+#include <XBee.h>
 #include <TimerOne.h>
 
 XBee xbee = XBee();
@@ -75,9 +75,9 @@ void setup() {
   Serial.begin(9600);
 
   lastShotFired = 0;
-  settings.autoFireAllowed = false; // Not implemented
+  settings.autoFireAllowed = true; // Not implemented
   settings.fireAllowed = true;
-  settings.fireDelay = 750;
+  settings.fireDelay = 50;
   
   Timer1.initialize(480);
   Timer1.attachInterrupt(irHandler);
@@ -95,9 +95,9 @@ void loop() {
   unsigned int loopStartTime = millis();
 
   if (digitalRead(BUTTON)) {
-    if (settings.fireAllowed && (loopStartTime - lastShotFired > settings.fireDelay)) {
+    if (settings.fireAllowed && (loopStartTime - lastShotFired > settings.fireDelay) ) {
       lastShotFired = loopStartTime;
-        settings.fireAllowed = false;
+        settings.fireAllowed = settings.autoFireAllowed;
       fire();
     }
   } 
