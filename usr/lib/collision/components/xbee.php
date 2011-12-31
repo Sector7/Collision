@@ -10,8 +10,8 @@ class xbee extends component {
 	private $sl = '';
 
 	function startup() {
-		exec("stty -F /dev/ttyUSB1 9600 raw");
-		if ( !$this->t = fopen('/dev/ttyUSB1','r+b') )
+		exec("stty -F /dev/ttyUSB0 9600 raw");
+		if ( !$this->t = fopen('/dev/ttyUSB0','r+b') )
 			die(" - Failed to open\n");
 
 		stream_set_blocking($this->t, 0);
@@ -23,7 +23,7 @@ class xbee extends component {
 	}
 
 
-	function kill($pkt) {
+	function kill($pkt=array()) {
 		note(debug,"Broadcasting exit");
 	    fwrite($this->t,$this->xapi->transmit('000000000000ffff',chr(255)));
 		$this->ack($pkt);
@@ -74,6 +74,11 @@ class xbee extends component {
 				));
 				break;
 			default:
+				$this->broadcast(array(
+					'cmd' => 'unknownPackage',
+					'addr64' => $from,
+					'data' => $this->xapi->decodeAddress($data)
+				));
 				note(warning,"Got an unknown package type from $from");
 				break;
 		}
@@ -345,11 +350,12 @@ class xbee extends component {
                 }
             }
         }
-
+        usleep(1000);
 	}
 }
 
 $x = new xbee();
 $x->start('xbee','child');
+$x->start('xbee');
 
 ?>
