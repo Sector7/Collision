@@ -37,13 +37,12 @@ collision::event eventList[256];
 /**
  * Called by IR or Xbee receives, timers etc
  */
-void triggerEvent(int eventId) {
-    digitalWrite(RED, HIGH);
-    delay(1000);
+void triggerEvent(unsigned int eventId, unsigned int eventData) {
     switch (eventId) {
         // Hard coded events first
-        case 1 :
-            // ...
+        case IR_EVENT : //1
+ //           triggerEventRemote(BROADCAST_LOW, BROADCAST_HIGH, eventList[IR_EVENT].id, eventData);
+            sendStatus(XBeeAddress64(BROADCAST_LOW, BROADCAST_HIGH));
             break;
         case 10 :
             break;
@@ -52,9 +51,9 @@ void triggerEvent(int eventId) {
             for (int i = 0; i < 100; i++) {
                 if (eventList[i].id == eventId) {
                     if (eventList[i].targetSelf()) {
-                        //triggerEvent(eventList[i].id);
+                        triggerEvent(eventList[i].id, eventData);
                     } else {
-                        triggerEventRemote(eventList[i].addr_low, eventList[i].addr_high, eventList[i].id);
+                        triggerEventRemote(eventList[i].addr_high, eventList[i].addr_low, eventList[i].id, eventData);
                     }
                 }
             }
@@ -62,7 +61,7 @@ void triggerEvent(int eventId) {
     }
 }
 
-void triggerEventRemote(int addr_low, int addr_high, int eventId) {
+void triggerEventRemote(unsigned int addr_low, unsigned int addr_high, unsigned int eventId, unsigned int eventData) {
     // Call XBee
 }
 
@@ -239,6 +238,10 @@ void transmit() {
   }
 }
 
+/**
+ * Read a byte, bit by bit from IR_IN.
+ * Then trigger IR_EVENT with the read data
+ */
 void receive() {
   txrxCount++;
   receiveBuffer << 1;
@@ -248,17 +251,14 @@ void receive() {
   }
 
   if (txrxCount >= numBitsUsedInMessage - 1) {
+    triggerEvent(IR_EVENT, receiveBuffer);
 
     currentColor[1] = 255;
-
     txrxCount = 0;
     irState = neutral;
-
     //Serial.println(receiveBuffer);
     //Serial.println(receiveBuffer, BIN);
-
     receiveBuffer = 0;
-    //triggerEvent(receiveBuffer);
   }
 }
 

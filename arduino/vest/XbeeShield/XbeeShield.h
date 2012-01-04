@@ -6,13 +6,16 @@ void receive();
 void transmit();
 void parseCommand();
 void fadeRgb();
-void triggerEventRemote(int, int, int);
+void triggerEvent(unsigned int,unsigned  int);
+void triggerEventRemote(unsigned int, unsigned int, unsigned int, unsigned int);
 
 void sendShoot(XBeeAddress64 addr64);
 void sendUnknownCommand(XBeeAddress64 addr64);
 
 void startIrRecv();
 
+const unsigned int BROADCAST_LOW = 0x00000000;
+const unsigned int BROADCAST_HIGH = 0x0000FFFF;
 
 namespace collision {
     enum ir_state {
@@ -30,6 +33,10 @@ namespace collision {
         GREEN = 6,
         BLUE = 5,
         IROUT = 19,
+    };
+
+    enum events {
+        IR_EVENT = 1,
     };
 
     class event {
