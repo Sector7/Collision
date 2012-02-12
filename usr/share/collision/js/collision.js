@@ -61,38 +61,39 @@ collision = {
 						}
 					}
 					break;
-				case 'nodes':
+				case 'node':
 					opkt = pkt;
-					for ( i in opkt.nodes ) {
-						if ( opkt.nodes[i].role == undefined )
-							continue;
+					//for ( i in opkt.nodes ) {
+                    pkt = opkt.node;
 
-						pkt = opkt.nodes[i];
-							if ( pkt.role == 0 ) {
-								$$('#zbcoord div')[0].style.background = '#0f0';
-							}
+                    if ( pkt.role == undefined )
+                        continue;
 
-							if ( $('node_'+pkt.addr64) != undefined ) 
-								break;
+                    if ( pkt.role == 0 ) {
+                        $$('#zbcoord div')[0].style.background = '#0f0';
+                    }
 
-							el = new Element('li', {id: 'node_'+pkt.addr64, class: 'new'});
-							el.innerHTML = '<div></div>'+pkt.addr64+" <span>("+pkt.addr16+") <span id=\"node_"+pkt.addr64+"_type\"></span></span>";
-						
-							if ( $('role'+pkt.role) == undefined ) {
-								el2 = new Element('div', {id: 'role'+pkt.role});
-								el2.innerHTML = '<h3>'+pkt.roleStr+"s</h3><ul class=\"nodes\"></ul>";
-								$('nodes').adopt(el2);
-							}
+                    if ( $('node_'+pkt.addr64) != undefined ) 
+                        break;
 
-							$$('#role'+pkt.role+' .nodes')[0].adopt(el);
-							if ( pkt.role != 0 ) {
-								el.innerHTML += 
-									"<p><input id=\"color_"+pkt.addr64+"\" class=\"color\" onChange=\"collision.sendColor('"+pkt.addr64+"',this.value);\">"+
-									"<input type=\"button\" onClick=\"collision.sendWelcome('"+pkt.addr64+"');\" value=\"Welcome\">"+
-									"<input type=\"button\" onClick=\"collision.sendShoot('"+pkt.addr64+"');\" value=\"Shoot\"></p>";
-								$('color_'+pkt.addr64).color = new jscolor.color($('color_'+pkt.addr64), {});
-							}
-					}
+                    el = new Element('li', {id: 'node_'+pkt.addr64, class: 'new'});
+                    el.innerHTML = '<div></div>'+pkt.addr64+" <span>("+pkt.addr16+") <span id=\"node_"+pkt.addr64+"_type\"></span></span>";
+                
+                    if ( $('role'+pkt.role) == undefined ) {
+                        el2 = new Element('div', {id: 'role'+pkt.role});
+                        el2.innerHTML = '<h3>'+pkt.roleStr+"s</h3><ul class=\"nodes\"></ul>";
+                        $('nodes').adopt(el2);
+                    }
+
+                    $$('#role'+pkt.role+' .nodes')[0].adopt(el);
+                    if ( pkt.role != 0 ) {
+                        el.innerHTML += 
+                            "<p><input id=\"color_"+pkt.addr64+"\" class=\"color\" onChange=\"collision.sendColor('"+pkt.addr64+"',this.value);\">"+
+                            "<input type=\"button\" onClick=\"collision.sendWelcome('"+pkt.addr64+"');\" value=\"Welcome\">"+
+                            "<input type=\"button\" onClick=\"collision.sendShoot('"+pkt.addr64+"');\" value=\"Shoot\"></p>";
+                        $('color_'+pkt.addr64).color = new jscolor.color($('color_'+pkt.addr64), {});
+                    }
+					//}
 					break;
 				case 'nodeType':
 					$("node_"+pkt.addr64+"_type").innerHTML = collision.nodeTypes[pkt.nodeType];

@@ -10,8 +10,8 @@ class xbee extends component {
 	private $sl = '';
 
 	function startup() {
-		exec("stty -F /dev/ttyUSB0 9600 raw");
-		if ( !$this->t = fopen('/dev/ttyUSB0','r+b') )
+		exec("stty -F /dev/ttyUSB3 9600 raw");
+		if ( !$this->t = fopen('/dev/ttyUSB3','r+b') )
 			die(" - Failed to open\n");
 
 		stream_set_blocking($this->t, 0);
@@ -40,6 +40,10 @@ class xbee extends component {
 	    return fwrite($this->t,$this->xapi->transmit($pkt['addr'],chr(1)));
 	}
 
+	function remote($pkt) {
+		$this->responseTo[$this->xapi->id] = $pkt;
+	    return fwrite($this->t,$this->xapi->transmit($pkt['addr'],chr(5)));
+	}
 
 	function shoot($pkt) {
 		$this->responseTo[$this->xapi->id] = $pkt;
@@ -49,6 +53,21 @@ class xbee extends component {
 	function discover($pkt = null) {
 		if ( $pkt )
 			$this->responseTo[$this->xapi->id] = $pkt;
+
+        $this->broadcast(array(
+            'cmd' => 'node',
+            'node' => array(
+                'cmd' => 'node',
+                'addr16' => 'FFFE',
+                'addr64' => $this->sh.$this->sl,
+                'role' => 0,
+                'roleStr' => 'Coordinator',
+                'status' => 0,
+                'profile' => 0,
+                'mf' => ''
+            )
+        ));
+
 	    return fwrite($this->t,$this->xapi->at('ND'));
 	}
 
@@ -62,7 +81,7 @@ class xbee extends component {
 
 	function xbee_event($from, $data) {
 		switch(substr($data,0,1)) {
-			case "\x01":
+			case "\x00":
 				$this->broadcast(array(
 					'cmd' => 'nodeType',
 					'addr64' => $from,
@@ -71,6 +90,24 @@ class xbee extends component {
 					'shots' => ord(substr($data,3,1)),
 					'life' => ord(substr($data,4,1)),
 					'color' => $this->xapi->decodeAddress(substr($data,5,3)),
+				));
+				break;
+			case "\x01":
+                $tmp1 = unpack("n",substr($data,1,2));
+                $tmp2 = unpack("n",substr($data,3,2));
+				$this->broadcast(array(
+					'cmd' => 'event',
+					'addr64' => $from,
+					'event' => $tmp1[1],
+					'data' => $tmp2[1],
+				));
+				break;
+			case "\x02":
+                $tmp = unpack("n",substr($data,1,2));
+				$this->broadcast(array(
+					'cmd' => 'battery',
+					'addr64' => $from,
+					'level' => ($tmp[1]-456)/0.55,
 				));
 				break;
 			default:
@@ -92,19 +129,9 @@ class xbee extends component {
 					1 => 'Router',
 					2 => 'End device'
 				);
-				$nodes = array(
-					array(
-						'cmd' => 'node',
-						'addr16' => 'FFFE',
-						'addr64' => $this->sh.$this->sl,
-						'role' => 0,
-						'roleStr' => 'Coordinator',
-						'status' => 0,
-						'profile' => 0,
-						'mf' => ''
-					)
-				);
-				for( $i=0;$i < strlen($data);$i+=20 ) {
+
+                $i = 0;
+				//for( $i=0;$i < strlen($data);$i+=20 ) {
 					$node = array(
 						'addr16' => $this->xapi->decodeAddress(substr($data,$i,2)),
 						'addr64' => $this->xapi->decodeAddress(substr($data,$i+2,8)),
@@ -115,13 +142,13 @@ class xbee extends component {
 						'profile' => $this->xapi->decodeHex(substr($data,$i+16,2)),
 						'mf' => $this->xapi->decodeHex(substr($data,$i+18,2))
 					);
-					$nodes[] = $node;
+					//$nodes[] = $node;
 
 	    			fwrite($this->t,$this->xapi->transmit($node['addr64'],chr(4))); // Send a who am i
-				}
+				//}
 				$this->broadcast(array(
-					'cmd' => 'nodes',
-					'nodes' => $nodes
+					'cmd' => 'node',
+					'node' => $node
 				));
 				break;
 			case 'SH':
