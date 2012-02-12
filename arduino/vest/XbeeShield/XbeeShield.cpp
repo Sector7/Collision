@@ -335,6 +335,9 @@ void parseCommand( ) {/*{{{*/
     case 0x04: // WhoAmI
       sendStatus( rx64.getRemoteAddress64() );
       break;
+    case 0x05: // Remote event
+      triggerEvent(rx64.getData(2)<<8+rx64.getData(3),rx64.getData(4)<<8+rx64.getData(5));
+      break;
     case 0xff: // Coordinator/Gameserver went offline
       tone(8, 440, 500);
       isOnline = false;
@@ -409,7 +412,7 @@ void fadeRgb() {/*{{{*/
         } else {
           currentColor[0]--;
         }
-        //analogWrite(RED, currentColor[0]);
+        analogWrite(RED, currentColor[0]);
       }
       if ( currentColor[1] != targetColor[1] ) {
         if ( currentColor[1]<targetColor[1] ) {
@@ -417,7 +420,7 @@ void fadeRgb() {/*{{{*/
         } else {
           currentColor[1]--;
         }
-        //analogWrite(GREEN, currentColor[1]);
+        analogWrite(GREEN, currentColor[1]);
       }
       if ( currentColor[2] != targetColor[2] ) {
         if ( currentColor[2]<targetColor[2] ) {
@@ -425,15 +428,15 @@ void fadeRgb() {/*{{{*/
         } else {
           currentColor[2]--;
         }
-        //analogWrite(BLUE, currentColor[2]);
+        analogWrite(BLUE, currentColor[2]);
       }
     }
   } else {
     currentColor[0] += 3;
     currentColor[1] += 3;
     currentColor[2] = 0;
-    //analogWrite(RED, currentColor[0]);
-    //analogWrite(GREEN, currentColor[1]);
-    //analogWrite(BLUE, currentColor[2]);
+    analogWrite(RED, currentColor[0]);
+    analogWrite(GREEN, currentColor[1]);
+    analogWrite(BLUE, currentColor[2]);
   }
 }/*}}}*/
