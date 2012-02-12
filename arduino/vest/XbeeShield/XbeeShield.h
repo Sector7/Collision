@@ -26,8 +26,8 @@ namespace collision {
 
     enum pins {
         IR_IN = 2,
-        BUTTON = 11,
-        VIBRATE = 6,
+        BUTTON = 9,
+        VIBRATE = 8,
         SPEAKER = 8,
         RED = 3,
         GREEN = 6,
@@ -37,17 +37,28 @@ namespace collision {
 
     enum events {
         IR_EVENT = 1,
+        FIRE_EVENT = 2,
+        DIE_EVENT = 3,
     };
 
     class event {
         public:
-            unsigned int id;
+            event();
+            unsigned int id; // Trigger event id
             unsigned int delay;
             unsigned int addr_low;
             unsigned int addr_high;
-            unsigned int event;
+            unsigned int event_id; // Send event id
             bool targetSelf();
     };
+
+    event::event() {
+        id = 0;
+        delay = 0;
+        addr_low = 0;
+        addr_high = 0;
+        event_id = 0;
+    }
 
     bool event::targetSelf() {
         return (addr_low == 0 && addr_high == 0);
