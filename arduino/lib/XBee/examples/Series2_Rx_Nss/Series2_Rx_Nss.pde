@@ -18,7 +18,7 @@
  */
  
 #include <XBee.h>
-#include <NewSoftSerial.h>
+#include <SoftwareSerial.h>
 
 /*
 This example is for Series 2 XBee
@@ -33,17 +33,18 @@ ZBRxResponse rx = ZBRxResponse();
 ModemStatusResponse msr = ModemStatusResponse();
 
 // Define NewSoftSerial TX/RX pins
-// Connect Arduino pin 9 to TX of usb-serial device
-uint8_t ssRX = 9;
-// Connect Arduino pin 10 to RX of usb-serial device
-uint8_t ssTX = 10;
+// Connect Arduino pin 8 to TX of usb-serial device
+uint8_t ssRX = 8;
+// Connect Arduino pin 9 to RX of usb-serial device
+uint8_t ssTX = 9;
 // Remember to connect all devices to a common Ground: XBee, Arduino and USB-Serial device
-NewSoftSerial nss(ssRX, ssTX);
+SoftwareSerial nss(ssRX, ssTX);
 
 
 void setup() {  
   // start serial
-  xbee.begin(9600);
+  Serial.begin(9600);
+  xbee.setSerial(Serial);
   nss.begin(9600);
   
   nss.println("starting up yo!");

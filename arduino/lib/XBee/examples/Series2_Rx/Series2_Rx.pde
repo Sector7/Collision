@@ -54,7 +54,8 @@ void setup() {
   pinMode(dataLed,  OUTPUT);
   
   // start serial
-  xbee.begin(9600);
+  Serial.begin(9600);
+  xbee.begin(Serial);
   
   flashLed(statusLed, 3, 50);
 }
@@ -100,5 +101,8 @@ void loop() {
       	// not something we were expecting
         flashLed(errorLed, 1, 25);    
       }
+    } else if (xbee.getResponse().isError()) {
+      //nss.print("Error reading packet.  Error code: ");  
+      //nss.println(xbee.getResponse().getErrorCode());
     }
 }

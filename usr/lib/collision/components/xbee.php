@@ -3,6 +3,8 @@
 require_once('../lib/xbeeApi.php');
 require_once('/usr/lib/stampzilla/lib/component.php');
 
+//print_r($args);
+
 class xbee extends component {
     public $componentclasses = array('gateway');
 	private $buff = '';
@@ -10,8 +12,9 @@ class xbee extends component {
 	private $sl = '';
 
 	function startup() {
-		exec("stty -F /dev/ttyUSB3 9600 raw");
-		if ( !$this->t = fopen('/dev/ttyUSB3','r+b') )
+        global $args;
+		exec("stty -F ".$args['arguments'][0]." 9600 raw");
+		if ( !$this->t = fopen($args['arguments'][0],'r+b') )
 			die(" - Failed to open\n");
 
 		stream_set_blocking($this->t, 0);
