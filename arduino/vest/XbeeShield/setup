@@ -1,0 +1,4 @@
+# kör: source setup
+export BOARD=atmega328
+export SERIALDEV=/dev/ttyUSB1
+export TARGET=main.ino

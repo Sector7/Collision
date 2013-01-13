@@ -1,0 +1,12 @@
+2-	Switch on external card
+3	PW led
+4
+5	HDD led
+6	BT led
+7	red led 1 - closest to sparkfun logo
+8	yellow led 2
+9	Wifi led
+10  13 ish?!
+11	red led 3
+12-	Switch on trigger card
+13	yellow led 4	

@@ -16,6 +16,17 @@ class xbeeApi {
     }
 
     function transmit($to,$data) {
+        $msg = '';
+        for($i=0;$i<strlen($data);$i++) {
+            $chr = substr($data,$i,1);
+            if ( ord($chr) > 32 && ord($chr) < 127 ) 
+                $msg .= $chr;
+            else
+                $msg .= "[".dechex(ord($chr))."]";
+        }
+
+        echo "SEND: ".$msg."\n";
+
         $api = "\x10";
 
 		if ( strlen($to) == 20 ) {

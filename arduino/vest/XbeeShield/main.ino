@@ -1,6 +1,6 @@
 #include <XBee.h>
 #include <TimerOne.h>
-#include "XbeeShield.h"
+#include "main.h"
 
 
 XBee xbee = XBee();
@@ -123,10 +123,6 @@ void triggerEventRemote(unsigned int addr_low, unsigned int addr_high, unsigned 
 
 void setup() {/*{{{*/
 
-    /*while(true) {
-        analogWrite(5,255);
-    }*/
-
   // initialize the digital pin as an output.
   // Pin 13 has an LED connected on most Arduino boards:
   pinMode(IROUT, OUTPUT);
@@ -140,19 +136,19 @@ void setup() {/*{{{*/
   digitalWrite(GREEN,true);
 
   Serial.begin(9600);
+  // Setup XBee and send hello
+  xbee.setSerial(Serial);
+  //sendIndentify( XBeeAddress64(0x00000000, 0x0000FFFF), 0x0003 );
 
   lastShotFired = 0;
   settings.autoFireAllowed = false; // Not implemented
   settings.fireAllowed = true;
   settings.fireDelay = 750;
 
-  attachInterrupt(0,startIrRecv,FALLING);
+  /*attachInterrupt(0,startIrRecv,FALLING);
   Timer1.initialize(IRpulseTimer);
   Timer1.attachInterrupt(irHandler);
-
-  // Setup XBee and send hello
-  xbee.begin(9600);
-  sendStatus( XBeeAddress64(0x00000000, 0x0000FFFF) );
+    */
 
   teamColor[0] = 0;
   teamColor[1] = 20;
@@ -161,7 +157,6 @@ void setup() {/*{{{*/
 }/*}}}*/
 
 void loop() {/*{{{*/
-    unsigned int loopStartTime = millis();
   digitalWrite(GREEN,!digitalRead(GREEN));
 
     /*if (digitalRead(BUTTON)) {
@@ -308,14 +303,7 @@ void receive() {/*{{{*/
 
 void parseCommand( ) {/*{{{*/
   switch(rx64.getData(1)) {
-    case 0x01: // Startup package
-      // Green
-      targetColor[0] = 0;
-      targetColor[1] = 255;
-      targetColor[2] = 0;
-      isOnline = true;
-      sendStatus( rx64.getRemoteAddress64() );
-      break;
+/*   
     case 0x02: // Set rgb color
       teamColor[0] = rx64.getData(2);
       teamColor[1] = rx64.getData(3);
@@ -334,9 +322,20 @@ void parseCommand( ) {/*{{{*/
       break;
     case 0x04: // WhoAmI
       sendStatus( rx64.getRemoteAddress64() );
+      break;*/
+   case 0x00: // Server asks for identification
+      // Green
+      targetColor[0] = 0;
+      targetColor[1] = 255;
+      targetColor[2] = 0;
+      isOnline = true;
+      sendIndentify( rx64.getRemoteAddress64(), 0x0003 );
       break;
-    case 0x05: // Remote event
-      triggerEvent(rx64.getData(2)<<8+rx64.getData(3),rx64.getData(4)<<8+rx64.getData(5));
+    case 0x01: // Remote event
+      triggerEvent(
+        (rx64.getData(2)<<8+rx64.getData(3)),
+        (rx64.getData(4)<<8+rx64.getData(5))
+      );
       break;
     case 0xff: // Coordinator/Gameserver went offline
       tone(8, 440, 500);
@@ -351,16 +350,11 @@ void parseCommand( ) {/*{{{*/
   }
 }/*}}}*/
 
-void sendStatus( XBeeAddress64 addr64 ) {/*{{{*/
+void sendIndentify( XBeeAddress64 addr64, unsigned int model ) {/*{{{*/
   uint8_t payload[] = {
-    0x00, // WhoAmI cmd
-    0x01, // Standard weapon
-    (isOnline * 0x01), // Status bits
-    shotsLeft,
-    lifeLeft,
-    teamColor[0],
-    teamColor[1],
-    teamColor[2],
+    0x00, // Identification cmd
+    (model >> 8) & 0xFF,
+    model & 0xFF,
   };
 
   // Specify the address of the remote XBee (this is the SH + SL)

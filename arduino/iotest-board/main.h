@@ -6,8 +6,7 @@ const unsigned int BROADCAST_HIGH = 0x0000FFFF;
 
 void parseCommand();
 
-void sendShoot(XBeeAddress64 addr64);
-void sendStatus(XBeeAddress64 addr64);
+void sendIndentify(XBeeAddress64 addr64, unsigned int model );
 void sendUnknownCommand(XBeeAddress64 addr64);
 
 namespace collision {
@@ -29,9 +28,7 @@ namespace collision {
     };
 
     enum events {
-        IR_EVENT = 1,
-        FIRE_EVENT = 2,
-        DIE_EVENT = 3,
+        SET_EVENT = 5,
     };
 
     class event {

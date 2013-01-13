@@ -9,6 +9,7 @@ void fadeRgb();
 void triggerEvent(unsigned int,unsigned  int);
 void triggerEventRemote(unsigned int, unsigned int, unsigned int, unsigned int);
 
+void sendIndentify(XBeeAddress64 addr64, unsigned int model );
 void sendShoot(XBeeAddress64 addr64);
 void sendUnknownCommand(XBeeAddress64 addr64);
 
